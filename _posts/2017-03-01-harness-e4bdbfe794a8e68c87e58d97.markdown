@@ -1,0 +1,187 @@
+---
+author: heh3.org
+comments: true
+date: 2017-03-01 08:08:15+00:00
+layout: post
+link: http://heh3.org/?p=27
+slug: harness-%e4%bd%bf%e7%94%a8%e6%8c%87%e5%8d%97
+title: 'Harness: 使用指南'
+wordpress_id: 27
+---
+
+## 介绍
+
+
+在DEFCON 23上我发布了一个项目的测试版，就是之前一直在开发的powershell工具Harness.它是一个能提供从windows系统到几乎任何TCP套接字的远程交互式Powershell接口的远程连接程序。Harness项目的首要目标是提供一个远程接口，而这个接口让你感觉就像在本地使用powershell一样.
+
+从2015年9月25日，Harness 1.0便发布在github上提供下载，添加功能和错误修复。
+
+
+## 目标
+
+
+当我开始这个项目时，我有两个目标：
+
+我想要一个完全交互式远程PowerShell控制台具有与本机PowerShell.exe相同的功能
+能够无缝地在线路上导入模块
+
+
+## 结构
+
+
+
+
+### Server端
+
+
+Harness遵循互联网上通用的C-S模型，简单的说Harness是有效载荷的服务器，任何TCP侦听器都可以是客户端，例如Harness很容易和netcat一起工作；然而内置于Harness中的一些更高级的功能（例如^ import-module）需要一个支持内置命令的处理程序。
+
+
+### 本地客户端
+
+
+本地Harness处理程序包含在 PSHandler 模块中。该 PSHandler模块实现了特殊的命令^import-module，让Harness导入模块，而不必在Web服务器上拆分传输PowerShell脚本。PSHandler目前是一个实验处理程序，使用Python 3.4和更高版本中包含的Python asyncio library; 但是，ASYNCIO不是必需的，有关更多实现细节，请参阅wiki的开发部分。
+
+
+## 安装
+
+
+
+
+### 安装 Python 3.4
+
+
+程序代码中包含了一个安装python 3.4 的脚本，可以很容易的进行安装
+
+    
+    <code>git clone https://github.com/Rich5/Harness.git  
+    cd Harness/  
+    chmod 755 python_install.sh  
+    ./python_install.sh  
+    </code>
+
+
+python_install.sh 会执行以下明令来安装Python 3.4.
+
+    
+    <code> wget http://python.org/ftp/python/3.4.3/Python-3.4.3.tar.xz  
+     tar xf Python-3.4.3.tar.xz  
+     cd Python-3.4.3  
+     ./configure --prefix=/usr/local --enable-shared LDFLAGS="-Wl,-rpath /usr/local/lib"  
+     make && make altinstall  
+    </code>
+
+
+安装完成后可以通过以下命令启动运行：
+
+    
+    <code> Python3.4 harness.py  
+    </code>
+
+
+![](http://bytesdarkly.com/wp-content/uploads/2015/10/harness_main.png)
+
+
+### Client Framework
+
+
+Harness被绑定在一个Python写的小模块化框架中，使用show modules 命令可以显示可用的模块；
+![](http://bytesdarkly.com/wp-content/uploads/2015/10/harness_showmodules.png)
+
+
+### Payloads
+
+
+生成payload是相当简单的。要加载模块类型load 以进入模块子提示。然后使用熟悉的show和set命令，您可以配置payload。通过在提示符下键入run来执行所有模块。然后，有效负载模块将要求您指定保存文件的位置。
+
+![](http://bytesdarkly.com/wp-content/uploads/2015/10/harness_load_module_x86exe.png)
+
+
+### 启动监听
+
+
+加载本地处理程序类似于任何其他模块。只需设置您要监听的IP和端口并键入运行
+![](http://bytesdarkly.com/wp-content/uploads/2015/10/harness_run_handler.png)
+正如你可以看到处理器模块被强制设计运行在后台，现在你有一个监听器运行在端口80.多个连接可以由同一个处理程序处理。默认情况下，处理程序侦听SSL连接。但这不是必需的，但是如果您想使用SSL，则需要生成自己的自签名证书，并相应地设置CERT_PATH和KEY_PATH变量。
+
+在Linux上，生成自签名证书的一种简单方法是使用以下行：
+
+    
+    <code> openssl req -new -newkey rsa:2048 -days 365 -nodes -x509 -keyout server.key -out server.cert  
+    </code>
+
+
+
+
+### Shell
+
+
+目前的payload是一个反弹shell, 而且它已经内置到源代码中. 一旦payload被执行，一个会话就会注册到harness中，并且可以使用session命令
+
+![](http://bytesdarkly.com/wp-content/uploads/2015/10/harness_gaining_shell.png)
+
+输入 session 将向您显示熟悉的PowerShell提示. 本机中powershell.exe的所以功能必须手动实现。一些复杂的脚本可能无法工作，如果遇到错误或者奇怪的行为，请提交错误报告到我的github中。
+
+
+### 特殊命令
+
+
+Harness 允许用户使用自己的PowerShell脚本作为自定义工具包，但有一些特殊的命令给Harness附加功能。以^字符为前缀的命令表示需要进行特殊处理。特殊命令可以在客户端侧，服务器侧或两者上处理。例如， ^ import-module 函数需要在客户端和服务器上处理，而^ enable-format 命令只在服务器端处理。
+
+
+## ^Import-Module
+
+
+允许用户直接远程导入任何PowerShell模块
+
+Usage: ^import-module ![](http://bytesdarkly.com/wp-content/uploads/2015/10/harness_import_module.png)
+该模块负责将文件以base64编码发送到目标上，文件传输中出错会自动重新发送，模块一旦被导入，你就可用照常调用函数了，下面示例从POwerup 调用INOVKE-ALLCHECKS
+
+![](http://bytesdarkly.com/wp-content/uploads/2015/10/harness_run_PowerUp.png)
+
+
+### ^End与多行输入
+
+
+客户端允许多行输入，结束使用^end结束
+
+    
+    <code>Usage: ^end
+    </code>
+
+
+![](http://bytesdarkly.com/wp-content/uploads/2015/10/harness_multiline_input.png)
+
+
+### ^sleep
+
+
+^sleep命令允许用户暂停shell并在指定的时间回连
+
+    
+    <code>Usage: ^sleep [+Xd|h|m|s] | [dd/mm/yyyy hh:mm ]
+    </code>
+
+
+![](http://bytesdarkly.com/wp-content/uploads/2015/10/harness_sleep.png)
+
+
+### ^enable-format and ^disable-format
+
+
+发送到harness的所有命令传回来时都会以格式化输出。如果出于某种原因，可用禁用此功能，
+
+    
+    <code>Usage: ^enable-format
+           ^disable-format
+    </code>
+
+
+![](http://bytesdarkly.com/wp-content/uploads/2015/10/harness_formating.png)
+
+
+### 总结
+
+
+harness是一个非常有趣的项目，我会在时间允许的情况下添加更新和功能，您可用把它作为一个工具添加到你的工具箱，在某种最适合的情况下使用。
+下载Harness: https://github.com/Rich5/Harness

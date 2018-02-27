@@ -1,0 +1,52 @@
+---
+author: heh3.org
+comments: true
+date: 2017-07-11 01:47:05+00:00
+layout: post
+link: http://heh3.org/?p=106
+slug: linux-%e5%a6%82%e4%bd%95%e7%a6%81%e6%ad%a2%e7%94%a8%e6%88%b7%e7%99%bb%e5%bd%95
+title: Linux 如何禁止用户登录
+wordpress_id: 106
+categories:
+- linux
+---
+
+Linux 如何禁止用户登录
+在Linux上，有多种方式让不安份的用户无法登录。
+
+1.修改用户配置文件/etc/shadow，将第二栏设置为“*”，如下。那么该用户就无法登录。但是使用这种方式会导致该用户的密码丢失，也就是当你再次允许他登录的时候，你还得让他重新设置密码。[再次启用这个帐号的方法是把“*”去掉就可以了]
+
+dduyoung:*:14245:0:99999:7:::
+2.使用命令usermod
+这个方式简单又实用，而且没有1中的副作用。
+
+usermod -L dduyoung ##Lock 帐号dduyoung
+usermod -U dduyoung ##Unlock 帐号dduyoung
+3.通过修改shell类型
+这种方式会更加人性化一点，因为你不仅可以禁止用户登录，还可以告诉他你这么做的原因。如下：
+
+复制代码
+chsh dduyoung -s /sbin/nologin #将用户dduyoung的shell进行更改
+
+###############
+##修改/etc/nologin.txt(没有就新建一个)，
+##在里面添加给被禁止用户的提示
+###############
+
+#解禁用户的方式就是把shell改为他原有的就可以了。
+
+复制代码
+4.禁止所有的用户登录
+当你（如果你是系统管理员）不想让所有用户登录时（比如你要维护系统升级什么的），如果按上面的方式，一个一个地去禁止用户登录，这将是很……无聊的事。而且还容易出错。下面有一种简洁有效的方式：
+
+复制代码
+##在/etc目录下建立一个nologin文档
+touch /etc/nologin ##如果该文件存在，那么Linux上的所有用户（除了root以外）都无法登录
+##在/etc/nologin（注意：这可不是3中的nologin.txt啊！）写点什么，告诉用户为何无法登录
+#################
+cat /etc/nologin
+9：00－10：00 系统升级，所有用户都禁止登录！
+
+##解禁帐号也简单，直接将/etc/nologin删除就行了！
+
+http://www.cnblogs.com/zero1665/archive/2010/06/06/1752492.html

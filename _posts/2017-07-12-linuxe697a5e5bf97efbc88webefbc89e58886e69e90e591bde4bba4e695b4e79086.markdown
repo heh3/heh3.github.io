@@ -1,0 +1,530 @@
+---
+author: heh3.org
+comments: true
+date: 2017-07-12 07:27:01+00:00
+layout: post
+link: http://heh3.org/?p=110
+slug: linux%e6%97%a5%e5%bf%97%ef%bc%88web%ef%bc%89%e5%88%86%e6%9e%90%e5%91%bd%e4%bb%a4%e6%95%b4%e7%90%86
+title: linux日志（web）分析命令整理
+wordpress_id: 110
+categories:
+- websec
+---
+
+#### Linux日志（web）分析命令整理
+
+
+
+
+日志分析常用命令：
+
+
+
+
+1.查看文件内容
+
+
+
+    
+    <code>cat -n 显示行号
+    </code>
+
+
+
+
+
+2.分页显示
+
+
+
+    
+    <code>more
+    Enter 显示下一行
+    空格 显示下一页
+    F 显示下一屏
+    B 显示上一屏
+    less
+    /get 查询"get"字符串并高亮显示
+    </code>
+
+
+
+
+
+3.显示文件尾
+
+
+
+    
+    <code>tail
+    -f 不退出持续显示
+    -n 显示文件最后n行
+    </code>
+
+
+
+
+
+4.显示头文件
+
+
+
+    
+    <code>head
+    -n 显示文件开始n行
+    </code>
+
+
+
+
+
+5.内容排序
+
+
+
+    
+    <code>sort
+    -n 按照数字排序
+    -r 按照逆序排序
+    -k 表示排序列
+    -t 指定分隔符
+    </code>
+
+
+
+
+
+6.字符统计
+
+
+
+    
+    <code>wc
+    -l 统计文件中行数
+    -c 统计文件字节数
+    -L 查看最长行长度
+    -w 查看文件包含多少个单词
+    </code>
+
+
+
+
+
+7.查看重复出现的行
+
+
+
+    
+    <code>uniq
+    -c 查看该行内容出现的次数
+    -u 只显示出现一次的行
+    -d 只显示重复出现的行
+    </code>
+
+
+
+
+
+8.字符串查找
+
+
+
+    
+    <code>grep
+    </code>
+
+
+
+
+
+9.文件查找
+
+
+
+    
+    <code>find
+    which
+    whereis
+    </code>
+
+
+
+
+
+10.表达式求值
+
+
+
+    
+    <code>expr
+    </code>
+
+
+
+
+
+11.归档文件
+
+
+
+    
+    <code>tar
+    zip
+    unzip
+    </code>
+
+
+
+
+
+12.URL访问工具
+
+
+
+    
+    <code>curl
+    wget
+    </code>
+
+
+
+
+
+13.查看请求访问量
+
+
+
+    
+    <code>页面访问排名前十的IP
+    cat access.log | cut -f1 -d " " | sort | uniq -c | sort -k 1 -r | head -10
+    页面访问排名前十的URL
+    cat access.log | cut -f4 -d " " | sort | uniq -c | sort -k 1 -r | head -10
+    查看最耗时的页面
+    cat access.log | sort -k 2 -n -r | head 10
+    </code>
+
+
+
+
+
+14.大杀器
+
+
+
+    
+    <code>sed
+    sed 's/xxx/hello' access.log 将 xxx 替换成 hello 输出（s是文本替换命令）
+    sed -n '2,6p' access.log 只输出第第2到第6之间的行（-n表示输出指定的行）
+    sed '/qq/d' access.log 删除包含qq的行（d是文本删除命令）
+    sed '=' access.log 显示文件行号
+    sed -e 'i\head' access.log 在每行的前面插入head字符串（i在行首插入命令）
+    sed -e 'a\end' access.log 在每行的末尾追加end字符串（i在行尾追加命令）
+    sed -e '/google/c\hello' access.log 查找google匹配的行，用hello替换（c是对行文本替换命令）
+    </code>
+
+
+
+
+
+15.awk
+使用 awk 分解出日志中的信息
+
+
+
+
+由于我们在  HTTP Server 配置文件中指定了访问日志的固定格式，因此，我们可以轻易地使用 awk 解析，抽取我们需要的数据。
+以下面的示例日志为例：
+
+
+
+
+202.189.63.115 - - [31/Aug/2012:15:42:31 +0800] "GET / HTTP/1.1" 200 1365 "-" 
+ "Mozilla/5.0 (Windows NT 6.1; WOW64; rv:15.0) Gecko/20100101 Firefox/15.0.1"
+
+
+
+    
+    <code>$0 就是整个记录行
+    $1 就是访问 IP ” 202.189.63.115”
+    $4 就是请求时间的前半部分 “[31/Aug/2012:15:42:31”
+    $5 就是请求时间的后半部分 “+0800]”
+    </code>
+
+
+
+
+
+以此类推……
+当我们使用默认的域分割符时，我们可以从日志中解析出下面不同类型的信息：
+
+
+
+    
+    <code> awk '{print $1}' access.log       # IP 地址  (%h) 
+     awk '{print $2}' access.log       # RFC 1413 标识  (%l) 
+     awk '{print $3}' access.log       # 用户 ID  (%u) 
+     awk '{print $4,$5}' access.log     # 日期和时间  (%t) 
+     awk '{print $7}' access _log      #  URI (%>s) 
+     awk '{print $9}' access _log      # 状态码 (%>s) 
+     awk '{print $10}' access _log     # 响应大小  (%b) 
+    </code>
+
+
+
+
+
+我们不难发现，仅使用默认的域分隔符，不方便解析出请求行、引用页和浏览器类型等其他信息，因为这些信息之中包含不确定个数的空格。因此，我们需要把域分隔符修改为 “ ，就能够轻松读出这些信息。
+
+
+
+    
+    <code> awk -F\" '{print $2}' access.log        # 请求行 (%r) 
+     awk -F\" '{print $4}' access.log        # 引用页 
+     awk -F\" '{print $6}' access.log        # 浏览器
+    </code>
+
+
+
+
+
+注意：这里为了避免 Unix/Linux Shell 误解 “ 为字符串开始，我们使用了反斜杠，转义了 “ 。
+现在，我们已经掌握了 awk 的基本知识，以及它是怎样解析日志的。 下面我们做好准备开始到真实的世界里开始“冒险”了。
+
+
+
+
+统计浏览器类型
+如果我们想知道那些类型的浏览器访问过网站，并按出现的次数倒序排列，我可以使用下面的命令：
+
+
+
+    
+    <code> awk -F\" '{print $6}' access.log | sort | uniq -c | sort -fr 
+    </code>
+
+
+
+
+
+发现系统存在的问题
+我们可以使用下面的命令行，统计服务器返回的状态码，发现系统可能存在的问题。
+
+
+
+    
+    <code> awk '{print $9}' access.log | sort | uniq -c | sort 
+    </code>
+
+
+
+
+
+有关状态码的 awk 命令示例：
+
+
+
+
+查找并显示所有状态码为 404 的请求
+
+
+
+    
+    <code>awk '($9 ~ /404/)' access.log 
+    </code>
+
+
+
+
+
+统计所有状态码为 404 的请求
+
+
+
+    
+    <code>awk '($9 ~ /404/)' access.log | awk '{print $9,$7}' | sort 
+    </code>
+
+
+
+
+
+现在我们假设某个请求 ( 例如 : URI: /path/to/notfound ) 产生了大量的 404 错误，我们可以通过下面的命令找到这个请求是来自于哪一个引用页，和来自于什么浏览器。
+
+
+
+    
+    <code>awk -F\" '($2 ~ "^GET /path/to/notfound "){print $4,$6}' access.log 
+    </code>
+
+
+
+
+
+追查谁在盗链网站图片
+系统管理员有时候会发现其他网站出于某种原因，在他们的网站上使用保存在自己网站上的图片。如果您想知道究竟是谁未经授权使用自己网站上的图片，我们可以使用下面的命令：
+
+
+
+    
+    <code> awk -F\" '($2 ~ /\.(jpg|gif|png)/ && $4 !~ /^http:\/\/www\.example\.com/)\ 
+     {print $4}' access.log \ | sort | uniq -c | sort 
+    </code>
+
+
+
+
+
+注意：使用前，将 www.example.com 修改为自己网站的域名。
+使用 ” 分解每一行；
+请求行中必须包括 “.jpg” 、”.gif” 或 ”.png”；
+引用页不是以您的网站域名字符串开始（ 在此例中，即 www.example.com ）；
+显示出所有引用页，并统计出现的次数。
+
+
+
+
+与访问 IP 地址相关的命令
+统计共有多少个不同的 IP 访问：
+
+
+
+    
+    <code> awk '{print $1}' access.log |sort|uniq|wc – l 
+    </code>
+
+
+
+
+
+统计每一个 IP 访问了多少个页面：
+
+
+
+    
+    <code> awk '{++S[$1]} END {for (a in S) print a,S[a]}' log_file 
+    </code>
+
+
+
+
+
+将每个 IP 访问的页面数进行从小到大排序：
+
+
+
+    
+    <code> awk '{++S[$1]} END {for (a in S) print S[a],a}' log_file | sort -n 
+    </code>
+
+
+
+
+
+查看某一个 IP（例如 202.106.19.100 ）访问了哪些页面：
+
+
+
+    
+    <code> grep ^202.106.19.100 access.log | awk '{print $1,$7}'
+    </code>
+
+
+
+
+
+统计 2012 年 8 月 31 日 14 时内有多少 IP 访问 :
+
+
+
+    
+    <code>awk '{print $4,$1}' access.log | grep 31/Aug/2012:14 | awk '{print $2}'| sort | uniq | \
+    wc -l
+    </code>
+
+
+
+
+
+统计访问最多的前十个 IP 地址
+
+
+
+    
+    <code> awk '{print $1}' access.log |sort|uniq -c|sort -nr |head -10 
+    </code>
+
+
+
+
+
+与响应页面大小的命令
+
+
+
+
+列出传输大小最大的几个文件
+
+
+
+    
+    <code> cat access.log |awk '{print $10 " " $1 " " $4 " " $7}'|sort -nr|head -100 
+    </code>
+
+
+
+
+
+列出输出大于 204800 byte ( 200kb) 的页面以及对应页面发生次数
+
+
+
+    
+    <code> cat access.log |awk '($10 > 200000){print $7}'|sort -n|uniq -c|sort -nr|head -100 
+    </code>
+
+
+
+
+
+与页面响应时间相关的命令
+
+
+
+
+如果日志最后一列记录的是页面文件传输时间 (%T)，例如我们可以自定义日志格式为：
+
+
+
+    
+    <code> LogFormat "%h %l %u %t \"%r\" %>s %b \"%{Referer}i\" \"%{User-Agent}i\" %T" combined 
+    </code>
+
+
+
+
+
+可以使用下面的命令统计出所有响应时间超过 3 秒的日志记录。
+
+
+
+    
+    <code> awk '($NF > 3){print $0}' access.log 
+    </code>
+
+
+
+
+
+注意：NF 是当前记录中域的个数。$NF 即最后一个域。
+列出相应时间超过 5 秒的请求
+
+
+
+    
+    <code> awk '($NF > 5){print $0}' access.log | awk -F\" '{print $2}' |sort -n| 
+     uniq -c|sort -nr|head -20 
+    </code>
+
+
+
+

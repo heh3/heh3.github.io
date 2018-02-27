@@ -1,0 +1,191 @@
+---
+author: heh3.org
+comments: true
+date: 2017-08-01 11:14:39+00:00
+layout: post
+link: http://heh3.org/?p=114
+slug: '%e4%bb%8ehttp%e5%93%8d%e5%ba%94%e4%b8%ad%e5%88%a0%e9%99%a4iis%e6%9c%8d%e5%8a%a1%e5%99%a8%e7%9a%84ip%e5%9c%b0%e5%9d%80'
+title: 从HTTP响应中删除IIS服务器的IP地址
+wordpress_id: 114
+categories:
+- windows
+tags:
+- '834141'
+- ip泄露
+- 屏蔽ip
+- 绑定主机头
+---
+
+原文地址[http://https://blogs.msdn.microsoft.com/mike/2008/11/18/removing-an-iis-servers-ip-address-from-http-responses/](http://https://blogs.msdn.microsoft.com/mike/2008/11/18/removing-an-iis-servers-ip-address-from-http-responses/)
+
+
+
+
+### IIS6.0
+
+
+
+
+##### 在Internet信息服务（IIS）6.0中使用SetHostName / UseHostName
+
+
+
+
+
+
+  1. 
+
+
+对于6.0来说 想要进行此配置更改，需要打上一个kb补丁
+
+
+
+
+http://support.microsoft.com/kb/834141
+默认的iis6的sp1或更高版本的2003系统，已经打上了这个补丁，但是在iis6中使用Request.ServerVariables集合时，运行iis的服务器的ip地址或主机头可能会意外返回
+这时候需要打上另外一个补丁，以解决kb834141在某些情况下无效的问题
+
+
+
+
+
+  2. 
+
+
+您可以选择设置IIS将发送的自定义主机名，而不是IP地址，或者您可以选择让IIS始终发送完全限定的机器名称。重要的是要注意，您必须选择其中一个选项; 您不能同时使用同一个Web应用程序的两个选项。
+
+
+
+
+
+  3. 
+
+
+一旦决定使用哪个选项，现在是使用IIS附带的adsutil.vbs工具来进行相应的配置更改。如果你希望IIS在响应头中发送您选择的主机名，则需要配置SetHostName配置数据库属性。SetHostName属性是一个字符串，您可以设置如下：
+
+
+
+    
+    <code>C:\Inetpub\AdminScripts> cscript.exe adsutil.vbs set w3svc/1/SetHostName MyIISserver
+    
+    在此示例中，数字1是正在配置的站点的ID号，MyIISserver是将在响应头中发送的字符串。运行此命令的输出应如下所示：
+    
+    Microsoft（R）Windows脚本主机版本5.6
+    
+    版权所有（C）微软公司1996-2001。版权所有。
+    
+    SetHostName：（STRING）“MyIISserver”
+    
+    或者，如果您希望IIS在内容位置和位置响应标头中发送服务器的完全限定的机器名称，则需要配置UseHostName配置数据库属性。UseHostName属性是一个布尔值或true或false，如下例所示：
+    
+    C：\ Inetpub \ AdminScripts> cscript.exe adsutil.vbs set w3svc / 1 / UseHostName true
+    
+    命令的输出应如下所示：
+    
+    Microsoft（R）Windows脚本主机版本5.6
+    
+    版权所有（C）微软公司1996-2001。版权所有。
+    
+    UseHostName：（BOOLEAN）True
+    
+    
+    请记住，你需要设置任何的SetHostName 或将UseHostName属性，但不能同时使用。SetHostName属性将导致IIS忽略UseHostName设置。如果SetHostName属性存在，则不必设置UseHostName属性。
+    </code>
+
+
+
+
+
+
+
+
+### IIS 7.0
+
+
+
+
+#### 在Internet Information Services（IIS）7.0中设置主机名
+
+
+
+    
+    <code>cd c:\windows\system32\inetsrv
+    
+    appcmd.exe set config -section:system.webServer/serverRuntime /alternateHostName:"myServer"  /commit:apphost
+    </code>
+
+
+
+
+
+### 已知问题
+
+
+
+
+在IIS6中设置UseHostName或SetHostName属性或IIS7中的alternateHostName属性后，仍然可以看到在HTTP响应中发送的服务器的IP地址。这不会在默认情况下发生，而是由响应的生成和发送的结果。 
+
+
+
+
+例如，如果配置导致发送HTTP 302响应的HTTP重定向，并且重定向代码使用服务器的IP地址，则IP地址可能会显示在响应的Content-Location或Location标头中。要解决此问题，请勿在重定向逻辑中使用服务器的IP地址; 而是使用其主机名或完全限定的机器名称。如果配置自定义错误页面以执行重定向，则可能会发生类似的行为，并且您使用IIS管理器将重定向目标设置为URL而不是文件。在这种情况下，指定文件而不是URL将保持IP地址隐藏。
+
+
+
+
+### IIS绑定主机头
+
+
+
+
+#### IIS6.0绑定主机头
+
+
+
+
+[
+https://jingyan.baidu.com/article/3a2f7c2e69414526aed6116b.html](https://jingyan.baidu.com/article/3a2f7c2e69414526aed6116b.html)
+
+
+
+
+#### IIS7.0绑定主机头
+
+
+
+
+[https://jingyan.baidu.com/article/4b07be3c617e3e48b280f36c.html](https://jingyan.baidu.com/article/4b07be3c617e3e48b280f36c.html)
+
+
+
+
+#### IIS7.0 https 绑定主机头
+
+
+
+    
+    <code>IIS7下面默认HTTPS绑定是无法指定主机头的，但我们可以通过手工修改IIS配置来实现主机头绑定。
+    打开C:\Windows\system32\inetsrv\config\applicationHost.config
+    定位到如下位置：
+    
+                    <bindings>
+                        <binding protocol="https" bindingInformation="*:443" />
+                        <binding protocol="net.tcp" bindingInformation="808:*" />
+                        <binding protocol="net.pipe" bindingInformation="*" />
+                        <binding protocol="net.msmq" bindingInformation="localhost" />
+                        <binding protocol="msmq.formatname" bindingInformation="localhost" />
+                        <binding protocol="http" bindingInformation="*:80:www.console.com" />
+                    </bindings>
+    
+    找到https的配置项目，修改为：
+    <binding protocol="https" bindingInformation="*:443:www.console.com" />
+    </code>
+
+
+
+
+
+注意这里的www.console.com要换成你自己的域名，之后保存即可。
+
+
+

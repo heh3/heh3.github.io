@@ -1,0 +1,205 @@
+---
+author: heh3.org
+comments: true
+date: 2017-03-03 16:49:45+00:00
+layout: post
+link: http://heh3.org/?p=29
+slug: word%e5%8a%a0%e5%af%86docx%e7%88%86%e7%a0%b4
+title: 加密docx爆破
+wordpress_id: 29
+categories:
+- tools
+---
+
+昨天正无聊呢，同事电话问我是否有word加密密码破解工具，之前了解过好像docx的并不能清除，问了朋友确定说doc的能清除，docx的没办法。但是有需求啊，网上再找找吧。翻到了这个
+
+
+
+
+![](http://i.imgur.com/m6lQqzR.png)
+
+
+
+
+得了，爆破吧，没辙。找了好些个工具，但是基于cpu的，速度上不来。想起hashcat了，打开一看还真能解这个docx的密码。那就操刀试一下吧。
+
+
+
+
+笔记本显卡GTX960M：
+
+
+
+
+2007版docx加密，速度在20000+H/s以上，可以试着跑谢大字典
+
+
+
+
+2010版docx加密（未测）
+
+
+
+
+2013.2016版docx加密，速度在1300H/s左右（速度不乐观，小字典弱口令可以试试）
+
+
+
+
+### 测试用例：
+
+
+
+
+test.docx（2016）
+
+
+
+
+密码：test
+
+
+
+
+### 测试工具：
+
+
+
+
+
+
+  1. 
+
+
+hashcat
+
+
+
+
+[https://hashcat.net/hashcat/](https://hashcat.net/hashcat/)
+
+
+
+
+
+  2. 
+
+
+hashcat-gui
+
+
+
+
+为了简化繁琐的命令输入我们可以使用辅助工具，hashcat-gui来简化我们的操作
+
+
+
+
+[https://hashkiller.co.uk/downloads/HashcatGUI_050b1.zip](http://https://hashkiller.co.uk/downloads/HashcatGUI_050b1.zip)
+
+
+
+
+
+  3. 
+
+
+office2john.py
+
+
+
+
+（用于提取docx加密文档的hash）
+
+
+
+
+[https://github.com/kholia/RC4-40-brute-office](https://github.com/kholia/RC4-40-brute-office)
+
+
+
+
+
+
+
+### docx文档密码破解
+
+
+
+
+##### step 1.提取docx格式加密文件hash
+
+
+
+    
+    <code>office2john.py C:\Users\xx\Desktop\test.docx
+    
+    test.docx:$office$*2013*100000*256*16*8d4953ffae5b287ccba891c83d31fa38*a96a8c7fac178fd110c9056052c3df28*c22bc5ef0db545a69ed7e4405cea888ea825e91ca21d36c73d61b4df155528bc
+    </code>
+
+
+
+
+
+![](http://i.imgur.com/1yMVWmb.png)
+去掉"文件名:"，保留剩下的部分
+
+
+
+    
+    <code>$office$*2013*100000*256*16*8d4953ffae5b287ccba891c83d31fa38*a96a8c7fac178fd110c9056052c3df28*c22bc5ef0db545a69ed7e4405cea888ea825e91ca21d36c73d61b4df155528bc
+    </code>
+
+
+
+
+
+然后拷贝这部分到剪贴板
+
+
+
+
+##### step 2.接下来启动hashcat-gui
+
+
+
+
+模式mode：Straight
+
+
+
+
+hash type：office 2013（这部分根据第一步中检测出的加密格式来看，虽然是文件是2016加密的，但这里选择2013依然奏效）
+![](http://i.imgur.com/GvWANiE.png)
+
+
+
+
+![](http://i.imgur.com/Ma16bHW.png)
+配置字典
+
+
+
+
+![](http://i.imgur.com/x8NW4C8.png)
+
+
+
+
+一切都配置好后运行即可，由于加密强度的原因，破解速度有点寒碜，2013，2016速度也就这样了（800H/s，gtx960m），2007版加密的docx速度相对快点(22000H/s，gtx960m)，
+2016版加密
+![](http://i.imgur.com/4TSylQQ.png)
+
+
+
+
+2007版加密
+![](http://i.imgur.com/p4CqkUW.png)
+
+
+
+
+[http://pentestcorner.com/cracking-microsoft-office-97-03-2007-2010-2013-password-hashes-with-hashcat/](http://pentestcorner.com/cracking-microsoft-office-97-03-2007-2010-2013-password-hashes-with-hashcat/)
+
+
+
